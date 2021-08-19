@@ -18,7 +18,8 @@ import Container from '@material-ui/core/Container';
 import logo from '../../images/logo.JPG';
 // import { ValidatorForm, TextValidator } from 'react-material-ui-form-validator';
 import axios from "axios";
-
+import Header from '../layouts/appBar';
+import Title from '../layouts/title';
 const useStyles = makeStyles((theme) => ({
     paper: {
         marginTop: theme.spacing(8),
@@ -101,14 +102,9 @@ export default function Product() {
     console.log(products);
 
     return (
-        <Container component="main" maxWidth="xs">
-            <CssBaseline />
-            <div className={classes.paper}>
-                <img className={classes.logo} src={logo} alt="logo" />
-
-                <p>Product</p>
-            </div>
-
-        </Container>
+        <div className={classes.root}  >
+            <Header />
+            <Title name='Products' />
+        </div>
     );
 }
