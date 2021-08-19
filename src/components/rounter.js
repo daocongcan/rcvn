@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {
   BrowserRouter as Router,
   Switch,
@@ -13,7 +13,7 @@ import User from "./users/user";
 export default function AppRoute() {
 
   useEffect(() => {
-    const token = JSON.parse( sessionStorage.getItem('token') );
+    // const token = JSON.parse( sessionStorage.getItem('token') );
   });
 
   return (

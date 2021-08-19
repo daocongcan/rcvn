@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 // import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -20,11 +20,9 @@ import { ValidatorForm, TextValidator } from 'react-material-ui-form-validator';
 import axios from "axios";
 
 import {
-    BrowserRouter as Router,
     Switch,
     Route,
     Redirect
-   
   } from "react-router-dom";
 
 const useStyles = makeStyles((theme) => ({
@@ -74,8 +72,7 @@ export default function SignIn() {
             "Content-Type": "application/json",
         };
 
-        const urlGetIp = 'https://api.ipify.org'
-        axios.get(urlGetIp).then(response => setIp(response.data));
+        
 
         const parram = { email: state.email, password: state.password, remember: state.remember, ip: ip };
 
@@ -84,7 +81,7 @@ export default function SignIn() {
                 
                     setError(response.data.data.error);
                     if( response.data.data.token ){
-                        let token = response.data.data.token;
+                        // let token = response.data.data.token;
                         sessionStorage.setItem('token',JSON.stringify(response.data.data));
                         setLoggedInr(true);
                     }
@@ -111,6 +108,26 @@ export default function SignIn() {
             [event.target.name]: value
         });
     }
+
+    useEffect(() => {
+
+        const urlGetIp = 'https://api.ipify.org'
+
+        const headers = {
+            'Accept' : 'application/json',
+            // 'Authorization' : 'Bearer ' + tokenStorage.token ,
+        };
+
+        const callAPI = async () => {
+          try {
+            axios.get(urlGetIp,{headers})
+              .then((data) => setIp(data.data));
+          } catch (e) {
+            console.log(e);
+          }
+        };
+        callAPI();
+    }, []);
 
 
 
@@ -199,7 +216,7 @@ export default function SignIn() {
             </div>
             <Switch>
                 <Route path="/login">
-                    {loggedIn ? <Redirect to="/products" /> : null }
+                    {loggedIn ? <Redirect to="/users" /> : null }
                 </Route>
             </Switch>            
         </Container>
