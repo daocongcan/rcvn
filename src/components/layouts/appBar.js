@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -7,9 +7,9 @@ import logo from '../../images/logo.JPG';
 import Box from '@material-ui/core/Box';
 import AccountCircle from '@material-ui/icons/AccountCircle';
 import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
+    // BrowserRouter as Router,
+    // Switch,
+    // Route,
     Link,
     useRouteMatch
 } from "react-router-dom";
@@ -55,7 +55,7 @@ export default function Header() {
             <Toolbar>
                 <Grid container spacing={2} >
                     <Grid item xs={12} sm={2}>
-                        <img className={classes.logo} src={logo} />
+                        <img alt='logo' className={classes.logo} src={logo} />
                     </Grid>
                     <Grid item xs={12} sm={9} display="flex"  >
                         <Box display="flex" flexDirection="row" >
