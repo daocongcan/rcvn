@@ -32,6 +32,9 @@ export default function AppRoute() {
           </Route>
           <PrivedRoute path="/users" component={User} />
           <PrivedRoute path="/products" component={Product} />
+          <Route exact path="/">
+            <SignIn />
+          </Route>
         </Switch>
       </div>
     </Router>

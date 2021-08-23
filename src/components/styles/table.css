@@ -1,0 +1,11 @@
+table {
+    border: 1px solid #ddd;
+}
+tr:nth-child(odd){
+    background-color: #efefef;
+}
+
+tr:nth-child(1){
+    background-color: red;
+    color: #fff;
+}

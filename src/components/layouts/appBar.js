@@ -6,6 +6,7 @@ import Grid from '@material-ui/core/Grid';
 import logo from '../../images/logo.JPG';
 import Box from '@material-ui/core/Box';
 import AccountCircle from '@material-ui/icons/AccountCircle';
+import IconButton from '@material-ui/core/IconButton';
 import {
     // BrowserRouter as Router,
     // Switch,
@@ -13,6 +14,9 @@ import {
     Link,
     useRouteMatch
 } from "react-router-dom";
+
+import MenuItem from '@material-ui/core/MenuItem';
+import Menu from '@material-ui/core/Menu';
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -32,32 +36,66 @@ const useStyles = makeStyles((theme) => ({
         minWidth: 120,
     },
     nav: {
-        padding:9,
-        color:'red',
-        fontWeight:'bold',
+        padding: 9,
+        color: 'red',
+        fontWeight: 'bold',
         backgroundColor: '#ddd',
         textDecoration: 'none',
-        width:100,
-        textAlign:'center',
-        marginRight:1,
+        width: 100,
+        textAlign: 'center',
+        marginRight: 1,
     },
     navActive: {
-        color:'red',
+        color: 'red',
         backgroundColor: '#fff',
     },
 }));
 
 export default function Header() {
     const classes = useStyles();
+    const [anchorEl, setAnchorEl] = React.useState(null);
+    
+
+    const isMenuOpen = Boolean(anchorEl);
+
+    const handleProfileMenuOpen = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+        sessionStorage.removeItem("token");
+        window.location.href='/login'
+    };
+
+    const storageToken = JSON.parse(sessionStorage.getItem('token'))
+
+    const menuId = 'primary-search-account-menu';
+    const renderMenu = (
+        <Menu
+            anchorEl={anchorEl}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            id={menuId}
+            keepMounted
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            open={isMenuOpen}
+            onClose={handleMenuClose}
+        >
+            <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
+        </Menu>
+    );
+
 
     return (
         <AppBar position="static">
             <Toolbar>
-                <Grid container spacing={2} >
-                    <Grid item xs={12} sm={2}>
+                <Grid container spacing={2} alignItems='center' >
+                    <Grid item xs={12} sm={2} style={{display:'flex'}}  >
                         <img alt='logo' className={classes.logo} src={logo} />
                     </Grid>
-                    <Grid item xs={12} sm={9} display="flex"  >
+                    <Grid item xs={12} sm={9} style={{display:'flex'}}   >
                         <Box display="flex" flexDirection="row" >
                             <LinkCustom
                                 activeOnlyWhenExact={true}
@@ -68,11 +106,26 @@ export default function Header() {
                             <LinkCustom to="/users" label="Users" />
                         </Box>
                     </Grid>
-                    <Grid item xs={6} sm={1}>
-                        <Box display='flex' >
+                    <Grid item xs={6} sm={1}  >
+                        {/* <Box display='flex'  >
                             <AccountCircle />
                             <label className={classes.paper}> Admin</label>
-                        </Box>
+
+                        </Box> */}
+                        <IconButton
+                            edge="end"
+                            aria-label="account of current user"
+                            aria-controls={menuId}
+                            aria-haspopup="true"
+                            onClick={handleProfileMenuOpen}
+                            color="inherit"
+                        >
+                            <AccountCircle /> 
+                            
+                            <label style={{textTransform:'capitalize',fontSize:22}} >{storageToken ? storageToken.name : null}</label>
+
+                        </IconButton>
+                        {renderMenu}
                     </Grid>
 
                 </Grid>
@@ -88,6 +141,6 @@ function LinkCustom({ label, to, activeOnlyWhenExact }) {
     });
     let classes = useStyles();
     return (
-            <Link className={`${classes.nav}  ${match ? classes.navActive : ''} `} to={to}>{label}</Link>
+        <Link className={`${classes.nav}  ${match ? classes.navActive : ''} `} to={to}>{label}</Link>
     );
 }

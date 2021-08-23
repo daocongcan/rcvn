@@ -23,6 +23,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import Dialog from '@material-ui/core/Dialog';
 import FormHelperText from '@material-ui/core/FormHelperText';
+import '../styles/table.css'
 const useStyles = makeStyles((theme) => ({
 	modal: {
 		display: 'flex',
@@ -88,6 +89,7 @@ export default function AddUser(props) {
 		repeatPassword: "",
 		group_role: ""
 	});
+
 	const [ip, setIp] = React.useState('');
 	const [error, setError] = React.useState('');
 	const [loggedIn, setLoggedInr] = React.useState(false);
@@ -101,35 +103,43 @@ export default function AddUser(props) {
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
-		axios.post(`${API_URL}/users`, state, { headers })
-			.then(response => {
 
-				console.log(response.data.data)
-				// setError(response.data.data.error);
+		if (props.action == 'add') {
+			axios.post(`${API_URL}/users`, state, { headers })
+				.then(response => {
+					console.log(response.data.data)
+				});
+		} else {
+			axios.put(`${API_URL}/users/${props.userId}`, state, { headers })
+				.then(response => {
+					props.handleSubmit(response.data.data);
+				});
+		}
 
-			});
 	}
 
 
 
 	function handleChange(event) {
 		const value = event.target.value;
+
 		setError('');
 		setState({
 			...state,
 			[event.target.name]: value
 		});
 
-		if (event.target.name === 'repeatPassword') {
+		if (event.target.name == 'repeatPassword') {
 			handleRepeatPassword();
 		}
-		if (event.target.name === 'name') {
+		if (event.target.name == 'name') {
 			minLenght();
 		}
-		else if (event.target.name === 'password') {
+		else if (event.target.name == 'password') {
 			mediumPass();
+			minLenght();
 		}
-		else if (event.target.name === 'email') {
+		else if (event.target.name == 'email') {
 			setTimeout(() => {
 				checkUniqueEmail();
 			}, 500);
@@ -155,7 +165,7 @@ export default function AddUser(props) {
 
 		ValidatorForm.addValidationRule('uniqueEmail', (value) => {
 			for (let i = 0; i < data.length; i++) {
-				if (data[i].email === value) {
+				if (data[i].email == value && data[i].id != props.userId) {
 					return false;
 				}
 			}
@@ -178,18 +188,22 @@ export default function AddUser(props) {
 	}
 
 	function minLenght() {
+
 		ValidatorForm.addValidationRule('minLenght', (value) => {
-			if (value.length < 6) {
+
+			if (value && value.length < 6) {
 				return false;
 			}
 			return true;
+
 		});
+
 	}
 
 	function mediumPass() {
 		ValidatorForm.addValidationRule('mediumPass', (value) => {
 			var mediumRegex = new RegExp("^((?=.*[A-Z])(?=.*[a-z])(?=.*[0-9]))(?=.{6,})");
-			if (mediumRegex.test(value)) {
+			if (value && mediumRegex.test(value)) {
 				return true;
 			}
 			return false;
@@ -197,27 +211,30 @@ export default function AddUser(props) {
 	}
 
 	function getUserById() {
-
+		
 		const res = axios({
 			url: `${API_URL}/users/${props.userId}`,
 			method: 'get',
-			headers:headers,
-		});
-
+			headers: headers,
+		}).then(response => {
+			let data = response.data.data
+			setState(data[0]);
+		})
 	}
 
 
 	useEffect(() => {
-		handleRepeatPassword();
-		minLenght();
-		mediumPass();
-		checkUniqueEmail();
 
-		if( props.action === 'edit' ) {
-			const user = getUserById();
-			if( user )
-			console.log(user.data);
+		if (props.action == 'edit') {
+			getUserById();
 		}
+
+		// handleRepeatPassword();
+		// minLenght();
+		// mediumPass();
+		// checkUniqueEmail();
+
+
 
 	}, []);
 
@@ -227,37 +244,17 @@ export default function AddUser(props) {
 
 	return (
 		<React.Fragment>
-			{/* <Modal
-				aria-labelledby="transition-modal-title"
-				aria-describedby="transition-modal-description"
-
-				className={classes.modal}
-				open={props.open}
-				onClose={props.handleClose}
-				closeAfterTransition
-				BackdropComponent={Backdrop}
-				BackdropProps={{
-					timeout: 500,
-				}}
+			<ValidatorForm
+				onSubmit={handleSubmit}
+				noValidate
+				className={classes.form}
 			>
-				<Fade in={props.open} >
-					<div className={classes.paper}>
-						<h2 id="transition-modal-title">Transition modal</h2>
+				<Dialog onClose={props.handleClose} aria-labelledby="customized-dialog-title" open={props.open}>
+					<DialogTitle id="customized-dialog-title" onClose={props.handleClose}>
+						{props.action == 'add' ? 'Thêm' : 'Chỉnh sửa'} User
+					</DialogTitle>
+					<DialogContent dividers>
 
-					</div>
-				</Fade>
-			</Modal> */}
-
-			<Dialog onClose={props.handleClose} aria-labelledby="customized-dialog-title" open={props.open}>
-				<DialogTitle id="customized-dialog-title" onClose={props.handleClose}>
-					{props.action === 'add' ? 'Thêm' : 'Chỉnh sửa'} User
-				</DialogTitle>
-				<DialogContent dividers>
-					<ValidatorForm
-						onSubmit={handleSubmit}
-						noValidate
-						className={classes.form}
-					>
 						<Grid container alignItems="center" >
 							<Grid item md={3}  >
 								Tên
@@ -274,7 +271,7 @@ export default function AddUser(props) {
 									name="name"
 									autoFocus
 									value={state.name}
-									validators={['required', 'minLenght:5']}
+									validators={['required', 'minLenght']}
 									errorMessages={['Vui lòng nhập tên người sử dụng', 'Tên phải lớn hơn 5 ký tự']}
 									onChange={handleChange}
 								/>
@@ -314,8 +311,8 @@ export default function AddUser(props) {
 									type="password"
 									id="password"
 									value={state.password}
-									validators={['required', 'minLenght:5', 'mediumPass']}
-									errorMessages={['Mật khẩu không được trống.', 'Mật khẩu phải 6 ký tự', 'Mật khẩu có chữ hoa, thường, và số ']}
+									validators={['required', 'minLenght', 'mediumPass']}
+									errorMessages={['Mật khẩu không được trống.', 'Mật khẩu hơn 5 ký tự', 'Mật khẩu có chữ hoa, thường, và số ']}
 									onChange={handleChange}
 								/>
 							</Grid>
@@ -372,29 +369,43 @@ export default function AddUser(props) {
 							<Grid item md={9}>
 								<FormControl variant="outlined" className={classes.formControl}   >
 									<FormControlLabel
-										control={<Checkbox value={state.is_active} name="is_active" color="primary" onChange={handleChecked} />}
+										control={<Checkbox checked={state.is_active == 1 ? true : false} value={state.is_active} name="is_active" color="primary" onChange={handleChecked} />}
 									/>
 								</FormControl>
 							</Grid>
-							<Button
-								type="submit"
-								fullWidth
-								variant="contained"
-								color="primary"
-								className={classes.submit}
 
-							>
-								Đăng nhập
-							</Button>
 						</Grid>
-					</ValidatorForm>
-				</DialogContent>
-				<DialogActions>
-					<Button autoFocus onClick={props.handleClose} color="primary">
+
+					</DialogContent>
+					<DialogActions>
+						{/* <Button autoFocus onClick={props.handleClose} color="primary">
 						Save changes
-					</Button>
-				</DialogActions>
-			</Dialog>
+					</Button> */}
+						<Button
+							// fullWidth
+							variant="contained"
+							color="secondary"
+							className={classes.submit}
+							onClick={props.handleClose}
+						>
+							Hủy
+						</Button>
+						<Button
+							type="submit"
+							onClick={handleSubmit}
+							// fullWidth
+							variant="contained"
+							color="primary"
+						// className={classes.submit}
+
+						>
+							Lưu
+						</Button>
+					</DialogActions>
+
+				</Dialog>
+			</ValidatorForm>
+
 		</React.Fragment>
 	);
 }

@@ -86,6 +86,7 @@ const useStyles = makeStyles((theme) => ({
 export default function User(token) {
     const wrapper = React.createRef();
     const classes = useStyles();
+    const [stt, setSTT] = React.useState(1);
     const [data, setData] = React.useState([]);
     const [userId, setUserId] = React.useState('');
     const [action, setAction] = React.useState('');
@@ -95,7 +96,7 @@ export default function User(token) {
     const [pagePagination, setPagePagination] = React.useState(1);
     const [recorView, setRecorView] = React.useState(1);
     const [totalPagination, setTotalPagination] = React.useState(1);
-    const [popupAdd,setPopupAdd] = React.useState(false);
+    const [popupAdd, setPopupAdd] = React.useState(false);
     const history = useHistory();
 
     const [state, setState] = React.useState({
@@ -118,7 +119,7 @@ export default function User(token) {
     };
 
     const keyCodeEnter = (event) => {
-        if (event.keyCode === 13) {
+        if (event.keyCode == 13) {
             handleSubmit(event);
         }
     }
@@ -127,7 +128,7 @@ export default function User(token) {
         event.preventDefault();
         let urlSearch = `?name=${state.name}&email=${state.email}&group_role=${state.group_role}&is_active=${state.is_active}`
         history.push(urlSearch);
-        if (state.name === '' && state.email === '' && state.group_role === '' && state.is_active === '') {
+        if (state.name == '' && state.email == '' && state.group_role == '' && state.is_active == '') {
             return false
         }
 
@@ -137,7 +138,14 @@ export default function User(token) {
             let totalPagination = Math.ceil(lengthData / pageSize)
             setTotalPagination(totalPagination)
         });
+    }
 
+    const reloadData = (data) => {
+        if( data == 1 ) {
+            callAPI();
+        }else if( data.isArray()) {
+            callAPI();
+        }
     }
 
     function handleClear() {
@@ -171,73 +179,96 @@ export default function User(token) {
         setAction('edit');
         setUserId(id);
     }
+
+    function handleDelete(id,action) {
+        // delete and block user
+        axios.post(`${API_URL}/${id}`,{action}, { headers }).then((response) => {
+            if(response.data.data )
+                callAPI();
+        }); 
+    }
+
+    function handleBlock(id) {
+
+    }
+
     const handleClose = () => {
         setPopupAdd(false);
-     };
+    };
+
+    const callAPI = async () => {
+        try {
+            axios.get(API_URL, { headers })
+                .then((data) => {
+                    setData(data.data.data);
+                    setDataBackup(data.data.data);
+                    let lengthData = data.data.data.length;
+                    let totalPagination = Math.ceil(lengthData / pageSize)
+                    setTotalPagination(totalPagination)
+                });
+        } catch (e) {
+            console.log(e);
+        }
+    };
 
     useEffect(() => {
 
         const params = new URLSearchParams(window.location.search)
-        
+
         // let name = params.get('name')
         // console.log(name)
-
-        const callAPI = async () => {
-            try {
-                axios.get(API_URL, { headers })
-                    .then((data) => {
-                        setData(data.data.data);
-                        setDataBackup(data.data.data);
-                        let lengthData = data.data.data.length;
-                        let totalPagination = Math.ceil(lengthData / pageSize)
-                        setTotalPagination(totalPagination)
-                    });
-            } catch (e) {
-                console.log(e);
-            }
-        };
         callAPI();
+
     }, []);
 
-    const columsData = [{ field: 'id', headerName: '#' },
-    { field: 'name', headerName: 'Họ tên', flex: 1, },
-    { field: 'email', headerName: 'Email', flex: 1, },
-    { field: 'group_role', headerName: 'Nhóm', flex: 1, },
-    {
-        field: 'is_active', headerName: 'Trạng thái', flex: 1,
-        renderCell: (params) => (
-            <label style={{ color: params.value === 1 ? 'green' : 'red' }} >
-                {params.value === 1 ? 'Đang hoạt động' : 'Tạm khóa'}
-            </label>
-        )
-    },
-    {
-        field: '', headerName: '', flex: 1, renderCell: (params) => {
-            const onClickDelete = async () => {
-                // return alert(JSON.stringify(params.row, null, 4));
-                
-            };
-            const onClickEdit = async () => {
-                // return alert(JSON.stringify(params.row, null, 4));
-                handleEdit(params.id);
-            };
-            const onClickBlock = async () => {
-                // return alert(JSON.stringify(params.row, null, 4));
-                
-            };
-            return (
-                <strong>
-                    <EditIcon
-                        id={params.id}
-                        color='primary'
-                        onClick={onClickEdit}
-                    />
-                    <DeleteIcon color='error' onClick={onClickDelete} />
-                    <BlockIcon onClick={onClickBlock} />
-                </strong>
+    const columsData = [
+        {
+            field: '#', headerName: '#', renderCell: (params,rows) => (
+                <div>
+                    {
+                        params.id
+                    }
+                </div>
             )
         },
-    }];
+        { field: 'name', headerName: 'Họ tên', flex: 1, },
+        { field: 'email', headerName: 'Email', flex: 1, },
+        { field: 'group_role', headerName: 'Nhóm', flex: 1, },
+        {
+            field: 'is_active', headerName: 'Trạng thái', flex: 1,
+            renderCell: (params) => (
+                <label style={{ color: params.value == 1 ? 'green' : 'red' }} >
+                    {params.value == 1 ? 'Đang hoạt động' : 'Tạm khóa'}
+                </label>
+            )
+        },
+        {
+            field: '', headerName: null, flex: 1, renderCell: (params) => {
+                const onClickDelete = async () => {
+                    // return alert(JSON.stringify(params.row, null, 4));
+                    handleDelete(params.id, {id_delete:true})
+                };
+                const onClickEdit = async () => {
+                    // return alert(JSON.stringify(params.row, null, 4));
+                    handleEdit(params.id);
+                };
+                const onClickBlock = async () => {
+                    // return alert(JSON.stringify(params.row, null, 4));
+                    handleDelete(params.id, {id_active:true})
+                };
+                return (
+                    <Box display='flex'>
+                        <EditIcon
+                            id={params.id}
+                            color='primary'
+                            onClick={onClickEdit}
+                        />
+                        <DeleteIcon color='error' onClick={onClickDelete} />
+                        <BlockIcon onClick={onClickBlock} />
+                    </Box>
+                )
+            },
+        }];
 
     const rowsData = data;
 
@@ -245,7 +276,7 @@ export default function User(token) {
     return (
         <React.Fragment  >
             <Header />
-            <form action='' onSubmit={handleSubmit} >
+            <form onSubmit={handleSubmit} >
                 <Grid container spacing={0} style={{ padding: 20 }} >
                     <Title name='Users' />
 
@@ -279,7 +310,7 @@ export default function User(token) {
                                 <FormControl variant="outlined" className={classes.formControl}   >
                                     {/* <InputLabel htmlFor="outlined-age-native-simple">Age</InputLabel> */}
                                     <Select
-                                        style={{marginTop:8}}
+                                        style={{ marginTop: 8 }}
                                         name='group_role'
                                         native
                                         margin="dense"
@@ -298,7 +329,7 @@ export default function User(token) {
                                     <b>Trạng thái</b>
                                     <Select
                                         native
-                                        style={{marginTop:8}}
+                                        style={{ marginTop: 8 }}
                                         margin="dense"
                                         name='is_active'
                                         value={state.is_active}
@@ -368,10 +399,11 @@ export default function User(token) {
                     </Grid>
 
                     <Grid item xs={12} md={12} >
-                        <div style={{ height: 650, width: '100%' }}>
+                        <div style={{ height: '100%', width: '100%' }}>
                             <div style={{ display: 'flex', height: '100%' }}>
                                 <div style={{ flexGrow: 1 }}>
                                     <DataGrid
+                                        autoHeight 
                                         page={page}
                                         // pagination
                                         // loading={true}
@@ -381,6 +413,12 @@ export default function User(token) {
                                         onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
                                         rowsPerPageOptions={[10, 20, 50]}
                                         hideFooterPagination={true}
+                                        disableSelectionOnClick 
+                                        hideFooter
+                                        disableColumnFilter={true}
+                                        disableColumnMenu={true}
+                                        disableColumnSelector={true}
+                                        
                                     />
                                 </div>
                             </div>
@@ -388,10 +426,11 @@ export default function User(token) {
                     </Grid>
                 </Grid>
             </form>
-            { popupAdd === true ? <AddUser data={dataBackup} userId={userId} action={action} open={popupAdd} handleClose={handleClose} /> : null }
-            
+            {popupAdd == true ? <AddUser data={dataBackup} userId={userId} action={action} open={popupAdd} handleClose={handleClose} handleSubmit={reloadData} /> : null}
+
         </React.Fragment>
     );
 }
+
 
 
