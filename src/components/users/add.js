@@ -23,7 +23,12 @@ import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import Dialog from '@material-ui/core/Dialog';
 import FormHelperText from '@material-ui/core/FormHelperText';
+import TextField from '@material-ui/core/TextField';
+import Backdrop from '@material-ui/core/Backdrop';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import '../styles/table.css'
+import SimpleBackdrop from '../layouts/backdrop'
+
 const useStyles = makeStyles((theme) => ({
 	modal: {
 		display: 'flex',
@@ -36,6 +41,10 @@ const useStyles = makeStyles((theme) => ({
 		boxShadow: theme.shadows[5],
 		padding: theme.spacing(2, 4, 3),
 	},
+	backdrop: {
+		zIndex: theme.zIndex.drawer + 1,
+		color: '#fff',
+	  },
 }));
 
 const styles = (theme) => ({
@@ -85,14 +94,20 @@ export default function AddUser(props) {
 		name: "",
 		email: "",
 		password: "",
-		is_active: "",
+		is_active: 0,
 		repeatPassword: "",
 		group_role: ""
 	});
-
-	const [ip, setIp] = React.useState('');
+	const [backDropOpen, setBackDropOpen] = React.useState(false);
 	const [error, setError] = React.useState('');
 	const [loggedIn, setLoggedInr] = React.useState(false);
+
+	const [validatorPass, setValidatorPass ] = React.useState([]);
+	const [validatorRepeatPass, setValidatorRepeatPass ] = React.useState([]);
+
+	const [errorMessagesRepeatPass, setErrorMessagesRepeatPass ] = React.useState([]);
+	const [errorMessagesPass, setErrorMessagesPass ] = React.useState([]);
+	
 
 	let storageToken = JSON.parse(sessionStorage.getItem('token'))
 	const API_URL = 'http://localhost:8000/api';
@@ -103,16 +118,19 @@ export default function AddUser(props) {
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
-
 		if (props.action == 'add') {
+			setBackDropOpen(true)
 			axios.post(`${API_URL}/users`, state, { headers })
 				.then(response => {
-					console.log(response.data.data)
+					props.handleSubmit(response.data.data);
+					props.handleClose();
 				});
 		} else {
-			axios.put(`${API_URL}/users/${props.userId}`, state, { headers })
+			setBackDropOpen(true)
+			axios.put(`${API_URL}/users/${props.userId.row.id}`, state, { headers })
 				.then(response => {
 					props.handleSubmit(response.data.data);
+					props.handleClose();
 				});
 		}
 
@@ -131,18 +149,18 @@ export default function AddUser(props) {
 
 		if (event.target.name == 'repeatPassword') {
 			handleRepeatPassword();
+			repeatPasswordValidation();
 		}
 		if (event.target.name == 'name') {
 			minLenght();
 		}
-		else if (event.target.name == 'password') {
+		if (event.target.name == 'password') {
 			mediumPass();
 			minLenght();
+			passwordValidation();
 		}
-		else if (event.target.name == 'email') {
-			setTimeout(() => {
-				checkUniqueEmail();
-			}, 500);
+		if (event.target.name == 'email') {
+			checkUniqueEmail();
 		}
 	}
 
@@ -165,7 +183,7 @@ export default function AddUser(props) {
 
 		ValidatorForm.addValidationRule('uniqueEmail', (value) => {
 			for (let i = 0; i < data.length; i++) {
-				if (data[i].email == value && data[i].id != props.userId) {
+				if (data[i].email == value && data[i].id != props.userId.row.id) {
 					return false;
 				}
 			}
@@ -212,29 +230,63 @@ export default function AddUser(props) {
 
 	function getUserById() {
 		
-		const res = axios({
-			url: `${API_URL}/users/${props.userId}`,
-			method: 'get',
-			headers: headers,
-		}).then(response => {
-			let data = response.data.data
-			setState(data[0]);
-		})
+		setState(props.userId.row); 
+
+		// const res = axios({
+		// 	url: `${API_URL}/users/${props.userId}`,
+		// 	method: 'get',
+		// 	headers: headers,
+		// }).then(response => {
+		// 	let data = response.data.data
+		// 	setState(data[0]);
+		// })
 	}
 
+	function closeForm() {
+		props.handleClose(true);
+	}
+
+	const passwordValidation = () => {
+		if (props.action == 'edit') { 
+			setValidatorPass(['minLenght', 'mediumPass']);
+			setErrorMessagesPass(['Mật khẩu hơn 5 ký tự', 'Mật khẩu có chữ hoa, thường, và số '])
+			
+		} else {
+			setValidatorPass(['required', 'minLenght', 'mediumPass']);
+			setErrorMessagesPass(['Mật khẩu không được trống.', 'Mật khẩu hơn 5 ký tự', 'Mật khẩu có chữ hoa, thường, và số '])
+		}
+		
+	}
+
+	const repeatPasswordValidation = () => {
+		if (props.action == 'edit') { 
+			setValidatorRepeatPass(['isPasswordMatch']);
+			setErrorMessagesRepeatPass(['Nhập xác nhận không đúng'])
+		} else {
+			setValidatorRepeatPass(['required', 'isPasswordMatch']);
+			setErrorMessagesRepeatPass(['Nhập xác nhận mật khẩu', 'Nhập xác nhận không đúng'])
+		}
+	}
 
 	useEffect(() => {
 
+		
+			handleRepeatPassword();
+			minLenght();
+			mediumPass();
+			checkUniqueEmail();
+		
+
+		
 		if (props.action == 'edit') {
+			// ValidatorForm.removeValidationRule('required');
+			// ValidatorForm.removeValidationRule('isPasswordMatch');
+			// ValidatorForm.removeValidationRule('mediumPass');
 			getUserById();
+		} else {
+			passwordValidation();
+			repeatPasswordValidation();
 		}
-
-		// handleRepeatPassword();
-		// minLenght();
-		// mediumPass();
-		// checkUniqueEmail();
-
-
 
 	}, []);
 
@@ -244,12 +296,13 @@ export default function AddUser(props) {
 
 	return (
 		<React.Fragment>
-			<ValidatorForm
-				onSubmit={handleSubmit}
-				noValidate
-				className={classes.form}
-			>
-				<Dialog onClose={props.handleClose} aria-labelledby="customized-dialog-title" open={props.open}>
+
+			<Dialog onClose={props.handleClose} aria-labelledby="customized-dialog-title" open={props.open}>
+				<ValidatorForm
+					onSubmit={handleSubmit}
+					noValidate
+					className={classes.form}
+				>
 					<DialogTitle id="customized-dialog-title" onClose={props.handleClose}>
 						{props.action == 'add' ? 'Thêm' : 'Chỉnh sửa'} User
 					</DialogTitle>
@@ -271,8 +324,8 @@ export default function AddUser(props) {
 									name="name"
 									autoFocus
 									value={state.name}
-									validators={['required', 'minLenght']}
-									errorMessages={['Vui lòng nhập tên người sử dụng', 'Tên phải lớn hơn 5 ký tự']}
+									validators={['required']}
+									errorMessages={['Vui lòng nhập tên người sử dụng']}
 									onChange={handleChange}
 								/>
 							</Grid>
@@ -289,8 +342,6 @@ export default function AddUser(props) {
 									id="email"
 									label="Email"
 									name="email"
-									autoComplete="email"
-									autoFocus
 									value={state.email}
 									validators={['required', 'isEmail', 'uniqueEmail']}
 									errorMessages={['Email không được trống', 'Email không đúng định dạng', 'Email đã được đăng ký']}
@@ -304,15 +355,15 @@ export default function AddUser(props) {
 								<TextValidator
 									variant="outlined"
 									margin="dense"
-									required
+
 									fullWidth
 									name="password"
 									label="Mật khẩu"
 									type="password"
 									id="password"
 									value={state.password}
-									validators={['required', 'minLenght', 'mediumPass']}
-									errorMessages={['Mật khẩu không được trống.', 'Mật khẩu hơn 5 ký tự', 'Mật khẩu có chữ hoa, thường, và số ']}
+									validators={validatorPass}
+									errorMessages={errorMessagesPass}
 									onChange={handleChange}
 								/>
 							</Grid>
@@ -331,37 +382,38 @@ export default function AddUser(props) {
 									id="repeatPassword"
 									value={state.repeatPassword}
 									onChange={handleChange}
-									validators={['required', 'isPasswordMatch']}
-									errorMessages={['Nhập xác nhận mật khẩu', 'password mismatch']}
-
+									validators={validatorRepeatPass}
+									errorMessages={errorMessagesRepeatPass}
 								/>
-							</Grid><Grid item md={3}  >
+
+							</Grid>
+							<Grid item md={3}  >
 								Nhóm
 							</Grid>
 							<Grid item md={9}>
 								<FormControl variant="outlined" error={state.group_role == "" ? true : false} fullWidth  >
-									{/* <InputLabel htmlFor="outlined-age-native-simple">Age</InputLabel> */}
-									<Select
+									<TextValidator
 										style={{ marginTop: 8 }}
 										name='group_role'
-										native
+										select
+										
 										margin="dense"
 										value={state.group_role}
 										onChange={handleChange}
 										fullWidth
+										id="outlined-basic" 
+										label="Chọn nhóm" 
+										variant="outlined"
 										validators={['required']}
-										errorMessages={['this field is required']}
+										errorMessages={['Chọn lựa nhóm chỉ định [Admin, Reviewer , Editor]']}
 									>
 										<option aria-label="None" value=""> Chọn nhóm </option>
 										<option value='admin' >Admin</option>
 										<option value='editor' >Editor</option>
 										<option value='reviewer'>Reviewer</option>
-									</Select>
-									{state.group_role == "" ?
-										<FormHelperText>Chọn nhóm</FormHelperText>
-										: null}
-
+									</TextValidator>
 								</FormControl>
+
 							</Grid>
 							<Grid item md={3}   >
 								Trạng thái
@@ -378,11 +430,7 @@ export default function AddUser(props) {
 
 					</DialogContent>
 					<DialogActions>
-						{/* <Button autoFocus onClick={props.handleClose} color="primary">
-						Save changes
-					</Button> */}
 						<Button
-							// fullWidth
 							variant="contained"
 							color="secondary"
 							className={classes.submit}
@@ -392,20 +440,16 @@ export default function AddUser(props) {
 						</Button>
 						<Button
 							type="submit"
-							onClick={handleSubmit}
-							// fullWidth
 							variant="contained"
 							color="primary"
-						// className={classes.submit}
-
+							className={classes.submit}
 						>
 							Lưu
 						</Button>
 					</DialogActions>
-
-				</Dialog>
-			</ValidatorForm>
-
+				</ValidatorForm>
+			</Dialog>
+			<SimpleBackdrop backDropOpen={backDropOpen} />
 		</React.Fragment>
 	);
 }

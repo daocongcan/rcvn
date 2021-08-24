@@ -33,7 +33,7 @@ export default function AppRoute() {
           <PrivedRoute path="/users" component={User} />
           <PrivedRoute path="/products" component={Product} />
           <Route exact path="/">
-            <SignIn />
+             <Redirect to="/login"  />
           </Route>
         </Switch>
       </div>

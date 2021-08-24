@@ -66,9 +66,14 @@ export default function Header() {
 
     const handleMenuClose = () => {
         setAnchorEl(null);
+        
+    };
+
+    const handleLogout = () => {
+        handleMenuClose();
         sessionStorage.removeItem("token");
         window.location.href='/login'
-    };
+    }
 
     const storageToken = JSON.parse(sessionStorage.getItem('token'))
 
@@ -83,7 +88,7 @@ export default function Header() {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
-            <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
         </Menu>
     );
 

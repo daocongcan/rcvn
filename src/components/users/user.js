@@ -33,6 +33,12 @@ import { useHistory } from 'react-router-dom';
 // import { useParams } from "react-router-dom";
 // import { positions } from '@material-ui/system';
 import AddUser from './add';
+import SimpleBackdrop from '../layouts/backdrop'
+import ConfirmationDialog from '../layouts/confirmation'
+import SimpleAlerts from '../layouts/alert'
+
+import '../styles/table.css';
+
 
 
 const useStyles = makeStyles((theme) => ({
@@ -87,6 +93,10 @@ export default function User(token) {
     const wrapper = React.createRef();
     const classes = useStyles();
     const [stt, setSTT] = React.useState(1);
+
+    const [idDelete, setIdDelete] = React.useState('');
+
+    const [backDropOpen, setBackDropOpen] = React.useState(true);
     const [data, setData] = React.useState([]);
     const [userId, setUserId] = React.useState('');
     const [action, setAction] = React.useState('');
@@ -97,6 +107,12 @@ export default function User(token) {
     const [recorView, setRecorView] = React.useState(1);
     const [totalPagination, setTotalPagination] = React.useState(1);
     const [popupAdd, setPopupAdd] = React.useState(false);
+    const [confirmOpen, setConfirmOpen] = React.useState(false);
+    const [nameDelete, setNameDelete] = React.useState('');
+    const [contentDelete, setContentDelete] = React.useState('');
+    const [alertOpen, SetAlertOpen] = React.useState(false);
+
+    
     const history = useHistory();
 
     const [state, setState] = React.useState({
@@ -141,10 +157,14 @@ export default function User(token) {
     }
 
     const reloadData = (data) => {
-        if( data == 1 ) {
+        if (data == 1) {
+            setPopupAdd(false)
+            setBackDropOpen(false);
             callAPI();
-        }else if( data.isArray()) {
+        } else if (typeof data === 'object') {
             callAPI();
+            setBackDropOpen(false);
+            setPopupAdd(false)
         }
     }
 
@@ -180,21 +200,33 @@ export default function User(token) {
         setUserId(id);
     }
 
-    function handleDelete(id,action) {
+    function handleDelete(id, action) {
         // delete and block user
-        axios.post(`${API_URL}/${id}`,{action}, { headers }).then((response) => {
-            if(response.data.data )
-                callAPI();
-        }); 
-    }
-
-    function handleBlock(id) {
+        setIdDelete(id);
+        setAction(action);
+        setConfirmOpen(true)
 
     }
 
     const handleClose = () => {
         setPopupAdd(false);
+        setConfirmOpen(false);
     };
+
+    const handleOK = () => {
+
+        setConfirmOpen(true);
+        setBackDropOpen(true);
+
+        axios.post(`${API_URL}/${idDelete}`, { action }, { headers }).then((response) => {
+            if (response.data.data) {
+                callAPI();
+                setBackDropOpen(true);
+                setConfirmOpen(false);
+            }
+        });
+
+    }
 
     const callAPI = async () => {
         try {
@@ -205,6 +237,7 @@ export default function User(token) {
                     let lengthData = data.data.data.length;
                     let totalPagination = Math.ceil(lengthData / pageSize)
                     setTotalPagination(totalPagination)
+                    setBackDropOpen(false)
                 });
         } catch (e) {
             console.log(e);
@@ -223,7 +256,7 @@ export default function User(token) {
 
     const columsData = [
         {
-            field: '#', headerName: '#', renderCell: (params,rows) => (
+            field: '#', headerName: '#', renderCell: (params, rows) => (
                 <div>
                     {
                         params.id
@@ -243,18 +276,23 @@ export default function User(token) {
             )
         },
         {
-            field: '', headerName: null, flex: 1, renderCell: (params) => {
+            field: '', headerName: null, flex: 1, sortable: false,
+            disableColumnMenu: true, renderCell: (params) => {
                 const onClickDelete = async () => {
                     // return alert(JSON.stringify(params.row, null, 4));
-                    handleDelete(params.id, {id_delete:true})
+                    handleDelete(params.id, { id_delete: true })
+                    setNameDelete(params.row.name);
+                    setContentDelete('Bạn muốn xóa tài khoản');
                 };
                 const onClickEdit = async () => {
                     // return alert(JSON.stringify(params.row, null, 4));
-                    handleEdit(params.id);
+                    handleEdit(params);
                 };
                 const onClickBlock = async () => {
                     // return alert(JSON.stringify(params.row, null, 4));
-                    handleDelete(params.id, {id_active:true})
+                    handleDelete(params.id, { id_active: true })
+                    setNameDelete(params.row.name);
+                    setContentDelete('Bạn muốn khóa tài khoản');
                 };
                 return (
                     <Box display='flex'>
@@ -270,164 +308,175 @@ export default function User(token) {
             },
         }];
 
+    const NoRow = () => {
+        return (
+            <label>Khong co du lieu</label>
+        )
+    }
     const rowsData = data;
 
-
+    // const apiRef = React.useRef<GridApi>(null);
     return (
         <React.Fragment  >
             <Header />
-            <form onSubmit={handleSubmit} >
-                <Grid container spacing={0} style={{ padding: 20 }} >
-                    <Title name='Users' />
+            <Box position='relative' >
+                <form onSubmit={handleSubmit} >
+                    <Grid container spacing={0} style={{ padding: 20 }} >
+                        <Title name='Users' />
 
-                    <Grid item md={12}>
+                        <Grid item md={12}>
 
-                        <Box display='flex'>
-                            {/* <InputBase
-                        className={classes.borderInput}
-                        placeholder="Nhập họ tên"
-                        name="name"
-                        
-                        margin="dense" // thu nho 
+                            <Box display='flex'>
+                                <Box className={classes.flexItem} >
+                                    <b>Tên</b>
+                                    <TextField name='name' margin="dense" placeholder="Nhập họ tên" label="" variant="outlined" value={state.name} onKeyDown={(e) => keyCodeEnter(e)} onChange={handleInputChange} />
+                                </Box>
+                                <Box className={classes.flexItem}>
+                                    <b>Email</b>
+                                    <TextField name='email' margin="dense" placeholder="Nhập email" label="" variant="outlined" value={state.email} onKeyDown={(e) => keyCodeEnter(e)} onChange={handleInputChange} />
+                                </Box>
+                                <Box className={classes.flexItem}>
+                                    <b>Nhóm</b>
 
-                    /> */}
-                            <Box className={classes.flexItem} >
-                                <b>Tên</b>
-                                <TextField name='name' margin="dense" placeholder="Nhập họ tên" label="" variant="outlined" value={state.name} onKeyDown={(e) => keyCodeEnter(e)} onChange={handleInputChange} />
+                                    <FormControl variant="outlined" className={classes.formControl}   >
+                                        <Select
+                                            style={{ marginTop: 8 }}
+                                            name='group_role'
+                                            native
+                                            margin="dense"
+                                            value={state.group_role}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option aria-label="None" value=""> Chọn nhóm </option>
+                                            <option value='admin' >Admin</option>
+                                            <option value='editor' >Editor</option>
+                                            <option value='reviewer'>Reviewer</option>
+                                        </Select>
+                                    </FormControl>
+                                </Box>
+                                <Box className={classes.flexItem}>
+                                    <FormControl variant="outlined" className={classes.formControl}   >
+                                        <b>Trạng thái</b>
+                                        <Select
+                                            native
+                                            style={{ marginTop: 8 }}
+                                            margin="dense"
+                                            name='is_active'
+                                            value={state.is_active}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value='' >Chọn trạng thái</option>
+                                            <option value='1' >Đang hoạt động</option>
+                                            <option value='0' >Tạm khóa</option>
+                                        </Select>
+                                    </FormControl>
+                                </Box>
                             </Box>
-                            <Box className={classes.flexItem}>
-                                <b>Email</b>
-                                <TextField name='email' margin="dense" placeholder="Nhập email" label="" variant="outlined" value={state.email} onKeyDown={(e) => keyCodeEnter(e)} onChange={handleInputChange} />
-                            </Box>
-                            <Box className={classes.flexItem}>
-                                <b>Nhóm</b>
-                                {/* <select name='group_role' value={state.group_role} onChange={handleInputChange} className={classes.selectPadding}  >
-                                    <option value='' >Chọn nhóm</option>
-                                    <option value='admin' >Admin</option>
-                                    <option value='editor' >Editor</option>
-                                    <option value='reviewer'>Reviewer</option>
-                                </select> */}
-                                <FormControl variant="outlined" className={classes.formControl}   >
-                                    {/* <InputLabel htmlFor="outlined-age-native-simple">Age</InputLabel> */}
-                                    <Select
-                                        style={{ marginTop: 8 }}
-                                        name='group_role'
-                                        native
-                                        margin="dense"
-                                        value={state.group_role}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option aria-label="None" value=""> Chọn nhóm </option>
-                                        <option value='admin' >Admin</option>
-                                        <option value='editor' >Editor</option>
-                                        <option value='reviewer'>Reviewer</option>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                            <Box className={classes.flexItem}>
-                                <FormControl variant="outlined" className={classes.formControl}   >
-                                    <b>Trạng thái</b>
-                                    <Select
-                                        native
-                                        style={{ marginTop: 8 }}
-                                        margin="dense"
-                                        name='is_active'
-                                        value={state.is_active}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option value='' >Chọn trạng thái</option>
-                                        <option value='1' >Đang hoạt động</option>
-                                        <option value='0' >Tạm khóa</option>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </Box>
-                    </Grid>
-                    <Grid container style={{ marginTop: 10 }} ></Grid>
-                    <Grid container>
-                        <Grid item md={9}>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                className={classes.button}
-                                startIcon={<PersonAddIcon />}
-                                onClick={handleAdd}
-                            >
-                                Thêm mới
-                            </Button>
                         </Grid>
-                        <Grid item md={1} >
-                            <Button
-                                type='submit'
-                                variant="contained"
-                                color="primary"
-                                size='small'
-                                className={classes.button}
-                                startIcon={<SearchIcon />}
-                            >
-                                Tìm kiếm
-                            </Button>
-
+                        <Grid container style={{ marginTop: 10 }} >
                         </Grid>
-                        <Grid item md={2}>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size='small'
-                                className={classes.button}
-                                startIcon={<ClearIcon />}
-                                onClick={handleClear}
-                            >
-                                Xóa tìm
-                            </Button>
+                        <Grid container>
+                            <Grid item md={9}>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size="small"
+                                    className={classes.button}
+                                    startIcon={<PersonAddIcon />}
+                                    onClick={handleAdd}
+                                >
+                                    Thêm mới
+                                </Button>
+                            </Grid>
+                            <Grid item md={1} >
+                                <Button
+                                    type='submit'
+                                    variant="contained"
+                                    color="primary"
+                                    size='small'
+                                    className={classes.button}
+                                    startIcon={<SearchIcon />}
+                                >
+                                    Tìm kiếm
+                                </Button>
+
+                            </Grid>
+                            <Grid item md={2}>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size='small'
+                                    className={classes.button}
+                                    startIcon={<ClearIcon />}
+                                    onClick={handleClear}
+                                >
+                                    Xóa tìm
+                                </Button>
+                            </Grid>
+
                         </Grid>
 
-                    </Grid>
-
-                    <Grid container style={{ marginTop: 10 }} ></Grid>
-                    <Grid item md={12}  >
-                        <Box position="relative" style={{ height: 40 }}  >
-                            <Box display="flex" justifyContent="center"  >
-                                {data.length > 10 ?
-                                    <Pagination count={totalPagination} page={pagePagination} onChange={handleChange} color="primary" showFirstButton showLastButton />
-                                    : " "
-                                }
+                        <Grid container style={{ marginTop: 10 }} ></Grid>
+                        <SimpleAlerts alertOpen = {alertOpen} handleClose={handleClose} />
+                        <Grid item md={12}  >
+                            <Box position="relative" style={{ height: 40 }}  >
+                                <Box display="flex" justifyContent="center"  >
+                                    {data.length > 10 ?
+                                        <Pagination count={totalPagination} page={pagePagination} onChange={handleChange} color="primary" showFirstButton showLastButton />
+                                        : " "
+                                    }
+                                </Box>
+                                <Box position="absolute" right={0} top={0} > Hiển thị từ {data.length > 0 ? recorView : 0} ~ {pagePagination * pageSize > data.length ? data.length : (pagePagination * pageSize)} trong tổng số <b>{data.length}</b>  user</Box>
                             </Box>
-                            <Box position="absolute" right={0} top={0} > Hiển thị từ {data.length > 0 ? recorView : 0} ~ {pagePagination * pageSize > data.length ? data.length : (pagePagination * pageSize)} trong tổng số <b>{data.length}</b>  user</Box>
-                        </Box>
-                    </Grid>
+                        </Grid>
 
-                    <Grid item xs={12} md={12} >
-                        <div style={{ height: '100%', width: '100%' }}>
-                            <div style={{ display: 'flex', height: '100%' }}>
-                                <div style={{ flexGrow: 1 }}>
-                                    <DataGrid
-                                        autoHeight 
-                                        page={page}
-                                        // pagination
-                                        // loading={true}
-                                        columns={columsData}
-                                        rows={rowsData}
-                                        pageSize={pageSize}
-                                        onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-                                        rowsPerPageOptions={[10, 20, 50]}
-                                        hideFooterPagination={true}
-                                        disableSelectionOnClick 
-                                        hideFooter
-                                        disableColumnFilter={true}
-                                        disableColumnMenu={true}
-                                        disableColumnSelector={true}
-                                        
-                                    />
+                        <Grid item xs={12} md={12} >
+                            <div style={{ height: '100%', width: '100%' }}>
+                                <div style={{ display: 'flex', height: '100%' }}>
+                                    <div style={{ flexGrow: 1 }}>
+                                        <DataGrid
+                                            autoHeight
+                                            page={page}
+                                            // pagination
+                                            // loading={true}
+                                            columns={columsData}
+                                            rows={rowsData}
+                                            pageSize={pageSize}
+                                            onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+                                            rowsPerPageOptions={[10, 20, 50]}
+                                            hideFooterPagination={true}
+                                            disableSelectionOnClick
+                                            hideFooter
+                                            disableColumnFilter={true}
+                                            disableColumnMenu={true}
+                                            disableColumnSelector={true}
+                                            ColumnUnsortedIcon={true}
+                                        // components={{
+                                        //     noRowsOverlay: NoRow,
+                                        // }}
+                                        // noRowsOverlay={'fdasfdsafds'}
+                                        // components={{
+                                        //     noRowsOverlay: (params) => {
+                                        //       if (!apiRef.current) {
+                                        //         apiRef.current = params.api.current;
+                                        //       }
+                                        //       return <div>Không có dữ li</div>;
+                                        //     }
+                                        //   }}
+
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </form>
-            {popupAdd == true ? <AddUser data={dataBackup} userId={userId} action={action} open={popupAdd} handleClose={handleClose} handleSubmit={reloadData} /> : null}
+                </form>
+                {popupAdd == true ? <AddUser data={dataBackup} userId={userId} action={action} open={popupAdd} handleClose={handleClose} handleSubmit={reloadData} /> : null}
 
+                <SimpleBackdrop backDropOpen={backDropOpen} />
+                <ConfirmationDialog confimOpen={confirmOpen} content={contentDelete} nameDelete={nameDelete} handleClose={handleClose} handleOK={handleOK} />
+
+            </Box>
         </React.Fragment>
     );
 }
